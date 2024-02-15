@@ -36,6 +36,13 @@ public class SwiftFlutterBranchSdkPlugin: NSObject, FlutterPlugin, FlutterStream
     var facebookParameters : [String: String] = [:]
     var snapParameters : [String: String] = [:]
     
+    /// Dynamic Links SDK breaks logic of Branch SDK Plugin. On first install, Firebase SDK simulates deep link opening which looks like this:
+    /// ```
+    /// schema://google/link/?request_ip_version=IP%5FV4&match_message=No%20pre%2Dinstall%20link%20matched%20for%20this%20device%2E
+    /// ```
+    /// It is then intercepted by Branch SDK Plugin and when https://api3.branch.io/v1/install is being called the parameter `external_intent_uri` is set to this weird link. As a result the response data does not contains original link which user opened on memo web.
+    let ignoredHosts = ["google"]
+    
     //---------------------------------------------------------------------------------------------
     // Plugin registry
     // --------------------------------------------------------------------------------------------
@@ -57,6 +64,9 @@ public class SwiftFlutterBranchSdkPlugin: NSObject, FlutterPlugin, FlutterStream
     }
     
     public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        if let host = url.host, ignoredHosts.contains(host) {
+            return false
+        }
         if (!isInitialized) {
             initialApplication = app
             intitalURL = url
@@ -68,6 +78,9 @@ public class SwiftFlutterBranchSdkPlugin: NSObject, FlutterPlugin, FlutterStream
     }
     
     public func application(_ app: UIApplication, open url: URL, sourceApplication: String, annotation: Any) -> Bool {
+        if let host = url.host, ignoredHosts.contains(host) {
+            return false
+        }
         if (!isInitialized) {
             initialApplication = app
             intitalURL = url
